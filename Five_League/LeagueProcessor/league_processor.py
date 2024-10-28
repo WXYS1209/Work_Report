@@ -384,13 +384,13 @@ class LeagueProcessor:
         file_date = f"{update_date[1].year}.{update_date[1].month}.{update_date[1].day}"
         
         if file_name not in files:
-            shutil.copytree(f"D:/wangxiaoyang/Regular_Work/Produce_Report/Reports/Five_League/{files[len(files)-1]}", f"D:/wangxiaoyang/Regular_Work/Reports/Five_League/{file_name}")
-            for ff in [os.path.join(f"D:/wangxiaoyang/Regular_Work/Reports/Five_League/{file_name}", file) for file in os.listdir(f"D:/wangxiaoyang/Regular_Work/Reports/Five_League/{file_name}")]:
+            shutil.copytree(f"D:/wangxiaoyang/Regular_Work/Produce_Report/Reports/Five_League/{files[len(files)-1]}", f"D:/wangxiaoyang/Regular_Work/Produce_Report/Reports/Five_League/{file_name}")
+            for ff in [os.path.join(f"D:/wangxiaoyang/Regular_Work/Produce_Report/Reports/Five_League/{file_name}", file) for file in os.listdir(f"D:/wangxiaoyang/Regular_Work/Produce_Report/Reports/Five_League/{file_name}")]:
                 new_file = re.sub(r"\d{4}\.\d{1,2}\.\d{1,2}", file_date, ff)
                 os.rename(ff, new_file)
         
         print(emoji.emojize(":trophy: Wonderful! :sports_medal: Marvelous! :1st_place_medal:"))
         print(emoji.emojize("Please finish all reports and then continue with summary."), end=" ")
-        pause_exectution()
+        pause_execution()
 
 

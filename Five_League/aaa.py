@@ -6,7 +6,6 @@ import warnings
 import time
 from LeagueProcessor.league_processor import LeagueProcessor
 from LeagueProcessor.summary_processor import SummaryProcessor
-from LeagueProcessor.other_func import pause_execution
 # from LeagueProcessor.normal_channel_result_generator import process_normal_result, process_cdp_result
 
 print(emoji.emojize(":smiling_face_with_sunglasses: Greeings! Let's begin generating reports! :soccer_ball:"))
@@ -32,30 +31,7 @@ while True:
     except (ValueError, TypeError):
         update_date_str = input("\U0001F643 Invalid format. Please give start date and end date as [YYYY-MM-DD YYYY-MM-DD]: ").split()
 
-## Get contains_pre_day flag
-p_d = input("\U0001F643 Whether contain previous day? [y/n] ")
-while not p_d in ['y', 'n']:
-    p_d = input("\U0001F643 Whether contain previous day? [y/n] ")
-
-if p_d == 'y':
-    contains_pre_day = True
-else:
-    contains_pre_day = False
-    
 update_date = pd.to_datetime(update_date_str)
-print(emoji.emojize(f":brain: Good job! Let's then begin generating result for none-CDP channels:"))
-
-# 存储共享变量
-shared_variables = {
-            "Period": update_date,
-            "p_d": contains_pre_day,
-                }
-
-# 创建 LeagueProcessor 实例并运行处理
-processor = LeagueProcessor(shared_variables)
-processor.process_normal_result()
-processor.process_cdp_result()
-processor.process_final_result()
 
 ## Get Overall period
 overall_date_str = input("\U0001F643 Please give start date as: [YYYY-MM-DD]: ").split()
@@ -69,8 +45,11 @@ while True:
         break  # If successful, break the loop
     except (ValueError, TypeError):
         overall_date_str = input("\U0001F643 Invalid format. Please give start date as [YYYY-MM-DD]: ").split()
-overall_date = pd.to_datetime([overall_date_str[0], update_date_str[1]])
 
+update_date = pd.to_datetime(update_date_str)
+overall_date = pd.to_datetime([overall_date_str[0], update_date_str[1]])
+print(emoji.emojize(f":brain: Good job! Let's then begin generating result for none-CDP channels:"))
+contains_pre_day = False
 # 存储共享变量
 shared_variables = {
             "Period": update_date,
@@ -78,7 +57,10 @@ shared_variables = {
             "Overall": overall_date
                 }
 
+# 创建 LeagueProcessor 实例并运行处理
+processor = LeagueProcessor(shared_variables)
+# processor.process_normal_result()
+# processor.process_cdp_result()
+# processor.process_final_result()
 summary_processor = SummaryProcessor(shared_variables)
 summary_processor.process_summary_result()
-
-
