@@ -84,8 +84,8 @@ class LeagueProcessor:
             league, league_chn, target_num, tv_var_num, tv_cols = self.get_league_info(kk)
             contains_pre_day = self.contains_pre_day
             
-            cdp_ps = pd.read_excel("D:/wangxiaoyang/Regular_Work/Produce_Report/Football_Program/CDP/cdp_ps_clean.xlsx")
-            
+            cdp_ps = pd.read_excel("D:/wangxiaoyang/Regular_Work/Produce_Report/CDP/cdp_ps_clean.xlsx")
+            cdp_ps['Date'] = pd.to_datetime(cdp_ps['Date'])
             # 筛选 cdp_league 数据
             cdp_league = cdp_ps[
                 (cdp_ps['Competition'] == league_chn) &
@@ -127,6 +127,42 @@ class LeagueProcessor:
                 cdp_league['Description']
             )
             
+            cdp_tmp = cdp_league.assign(
+                    Start=cdp_league['Start'].apply(lambda x: convert_time( get_seconds(x, False) )),
+                    End=cdp_league['End'].apply(lambda x: convert_time( get_seconds(x, False) ))
+                ).merge(
+                    channel_mapping,
+                    left_on='Channel',
+                    right_on='channel',
+                    how='left'
+                ).assign(
+                    ProgramID=lambda x: x['Channel'] + " " + x['Date'].astype(str) + " " + x['Start']
+                )
+            
+            # 拆分跨天数据
+            cdp_tmp1 = cdp_tmp[cdp_tmp['Start'] <= cdp_tmp['End']]
+            cdp_tmp2 = cdp_tmp[cdp_tmp['Start'] > cdp_tmp['End']]
+            
+            # 创建跨天数据帧
+            cdp_tmp_ds = pd.concat([
+                cdp_tmp2.assign(End="25:59:59"),
+                cdp_tmp2.assign(Start="02:00:00")
+            ])
+            
+            cdp_tmp = pd.concat([cdp_tmp1, cdp_tmp_ds])
+            
+            # 生成目标格式并写入文件
+            res = cdp_tmp.apply(lambda row: f"{row['Date'].strftime('%Y%m%d')} {str(row['code']).zfill(4)} {row['Start'].replace(':', '')} {row['End'].replace(':', '')} {row['ProgramID']}", axis=1)
+                        
+            file_path = f'{parent_dir}/infosys_txt/{league}_cdp_game_ps.txt'
+            
+            res.to_csv(file_path, 
+                       sep='\t',
+                       index=False,
+                       header=False,
+                       quoting=False,
+                       encoding="GBK")
+            
             tmp_cdp = self.day_span_processor.get_day_spanning(
                 cdp_league,
                 '',
@@ -139,10 +175,8 @@ class LeagueProcessor:
                 'Date',
                 'Weekday',
                 'Channel')
-            
-            if len(tmp_cdp) == 1:
-                df_cdp = tmp_cdp[0]
-            
+            df_cdp = tmp_cdp[0]
+                
             # 进行 left join，使用 merge 进行合并
             df_cdp = df_cdp.merge(channel_mapping, how='left', left_on='Channel', right_on='channel')
             
@@ -150,31 +184,48 @@ class LeagueProcessor:
             df_cdp['ProgramID'] = df_cdp['Channel'] + ' ' + df_cdp['Date'].astype(str) + ' ' + df_cdp['Start']
             
             self.file_manager.save_result(df_cdp, league, "temp_cdp.xlsx", "TEMP")
-            # if not os.path.exists(f'{parent_dir}/TEMP/temp_cdp.xlsx'):
-            #     with pd.ExcelWriter(f'{parent_dir}/TEMP/temp_cdp.xlsx', mode='w', engine='openpyxl') as writer:
-            #         df_cdp.to_excel(writer, sheet_name=league, index=False)
-            # else:
-            #     with pd.ExcelWriter(f'{parent_dir}/TEMP/temp_cdp.xlsx', mode='a', engine='openpyxl', if_sheet_exists='replace') as writer:
-            #         df_cdp.to_excel(writer, sheet_name=league, index=False)
-            
+
             # 生成 res 变量，格式化输出
-            res = df_cdp.apply(
-                lambda row: f"{pd.to_datetime(row['Date']).strftime('%Y%m%d')} " +
-                            f"{str(row['code']).zfill(4)} " +
-                            f"{str(row['Start']).replace(':', '')} " +
-                            f"{str(row['End']).replace(':', '')} " +
-                            row['ProgramID'],
-                axis=1
-            )
-            
-            file_path = f'{parent_dir}/infosys_txt/{league}_cdp_game_ps.txt'
-            
-            res.to_csv(file_path, 
-                       sep='\t',
-                       index=False,
-                       header=False,
-                       quoting=False,
-                       encoding="GBK")
+            # res = df_cdp.apply(
+            #     lambda row: f"{pd.to_datetime(row['Date']).strftime('%Y%m%d')} " +
+            #                 f"{str(row['code']).zfill(4)} " +
+            #                 f"{str(row['Start']).replace(':', '')} " +
+            #                 f"{str(row['End']).replace(':', '')} " +
+            #                 row['ProgramID'],
+            #     axis=1
+            # )
+
+            # if len(tmp_cdp) == 1:
+            #     print(emoji.emojize(f"  :rocket: {league}: No day span data found."))
+            #     df_cdp = tmp_cdp[0]
+            #     
+            #     # 进行 left join，使用 merge 进行合并
+            #     df_cdp = df_cdp.merge(channel_mapping, how='left', left_on='Channel', right_on='channel')
+            #     
+            #     # 创建 ProgramID 列
+            #     df_cdp['ProgramID'] = df_cdp['Channel'] + ' ' + df_cdp['Date'].astype(str) + ' ' + df_cdp['Start']
+            #     
+            #     self.file_manager.save_result(df_cdp, league, "temp_cdp.xlsx", "TEMP")
+            # 
+            #     # 生成 res 变量，格式化输出
+            #     res = df_cdp.apply(
+            #         lambda row: f"{pd.to_datetime(row['Date']).strftime('%Y%m%d')} " +
+            #                     f"{str(row['code']).zfill(4)} " +
+            #                     f"{str(row['Start']).replace(':', '')} " +
+            #                     f"{str(row['End']).replace(':', '')} " +
+            #                     row['ProgramID'],
+            #         axis=1
+            #     )
+            # else:
+            #     print(emoji.emojize(f"  :flying_saucer: {league}: Day span data found. Please get day span data."))
+            #     res = tmp_cdp[1].apply(lambda row: f"{row['Date'].strftime('%Y%m%d')} {str(row['code']).zfill(4)} {row['Start'].replace(':', '')} {row['End'].replace(':', '')} {row['ProgramID']}", axis=1)
+            #     print(res)
+            #     # with open(f'{parent_dir}/infosys_txt/cdp_{league}_day_span_ps.txt', 'w', encoding='GBK') as file:
+            #     #     file.write(tmp_cdp[0])
+            # 
+            # self.day_span_processor.process_day_span_data(tmp_cdp, f"cdp_{league}", tv_cols)
+                
+                
         print(emoji.emojize("  \U0001F607 Done!"))
         
         print(emoji.emojize(" :stop_sign: Now please get data from Infosys for CDP."), end=" ")
@@ -346,7 +397,7 @@ class LeagueProcessor:
             df_wrong = df_res.loc[aa[0], ['Title', 'Description', 'Channel']]
             if len(df_wrong) > 0:
                 wrong_info = True
-                self.file_manager.save_result(df_wrong, league,  "data_with_wrong_info.xlsx", "..")
+                self.file_manager.save_result(df_wrong, league,  "data_with_wrong_info.xlsx", ".")
                 # if not os.path.exists(f'{parent_dir}/data_with_wrong_info.xlsx'):
                 #     with pd.ExcelWriter(f'{parent_dir}/data_with_wrong_info.xlsx', mode='w', engine='openpyxl') as writer:
                 #         df_wrong.to_excel(writer, sheet_name=league, index=False)
@@ -393,4 +444,104 @@ class LeagueProcessor:
         print(emoji.emojize("Please finish all reports and then continue with summary."), end=" ")
         pause_execution()
 
+    def process_total_soccer_result(self):
+        
+        # Define update_date as a list of two dates
+        update_date = self.update_date
+        
+        df_org = pd.read_excel(f'{parent_dir}/Total_Soccer_byhand.xlsx')
+        
+        # 数据预处理
+        df_org['Date'] = pd.to_datetime(df_org['Date'])
+        df_org['Start'] = df_org['Start'].apply( lambda x: x.strftime("%H:%M:%S") )
+        df_org['End'] = df_org['End'].apply( lambda x: x.strftime("%H:%M:%S") )
+        a1 = df_org['End'].apply(lambda x: get_seconds(x, durr=False))
+        a2 = df_org['Start'].apply(lambda x: get_seconds(x, durr=False))
+        df_org['Dur'] = (a1 - a2).apply(convert_time)
+        
+        df_org['Channel'] = 'CCTV-5'
+        df_org['Regions'] = 'China National'
+        # df_org['Weekday'] = 'Monday'
+        
+        # 过滤日期范围内的数据
+        df = df_org[(df_org['Date'] <= update_date[1]) & (df_org['Date'] > update_date[0]) & (df_org['League'] != '')].copy().reset_index(drop=True)
+        df['ProgramID'] = df.apply(lambda row: f"{row['Channel']} {row['Date']} {row['Start']}", axis=1)
+        
+        # 合并 channel_mapping 数据
+        df = df.merge(channel_mapping, left_on='Channel', right_on='channel', how='left')
+        
+        # 生成结果字符串
+        res = df.apply(lambda row: f"{row['Date'].strftime('%Y%m%d')} {row['code']:04} "
+         f"{row['Start'].replace(':', '')} {row['End'].replace(':', '')} "
+         f"{row['ProgramID']}", axis=1)
+        
+        # 保存结果
+        res.to_csv(f'{parent_dir}/infosys_txt/total_soccer_ps.txt', index=False, header=False, encoding='GBK')
+        
+        print(emoji.emojize("  \U0001F607 Done!"))
+        
+        print(emoji.emojize(" :stop_sign: Now please get data from Infosys for Total Soccer."), end=" ")
+        pause_execution()
+        print(emoji.emojize(f" \U0001F648 Good job! Let's continue..."))
+        
+        # 读取其他数据并合并
+        data_file = f"D:/csm/InfosysPlusDaily/Export/admin/Total_Soccer.xlsx"
+        df_ts_org = self.data_cleaner.process_infosys_data("Vehicles", data_file, None)
+        # df_ts_org = pd.read_excel(data_file, header=None, sheet_name='载体')
+        # 
+        # df_ts_org.columns = df_ts_org.iloc[1]
+        # df_ts_org = df_ts_org.drop(index=[0, 1, 2])
+        # 
+        # df_ts_org.rename(columns={df_ts_org.columns[0]: 'ProgramID'}, inplace=True) # 设置 ProgramID 列名
+        df_ts_org = df_ts_org.drop(columns=['Date', 'Start Time', 'End Time', 'Channel', 'Regions'], axis=1)
+        df_final = df.merge(df_ts_org, on="ProgramID", how="left")
+        
+        
+        # 映射字典
+        title_map = {
+            '德甲集锦': 'Bundesliga Highlights',
+            '英超集锦': 'EPL Highlights',
+            '天下足球': 'Total Soccer',
+            '西甲集锦': 'La Liga Highlights'
+        }
+        
+        # 使用 apply 函数来处理映射和翻译
+        df_final['Title_Eng'] = df_final['Title'].apply(
+            lambda x: title_map.get(x, baiduTranslate(x))
+        )
+        # 选择所需列
+        df_res = (df_final[['Title_Eng', 'Dur', 'Regions', 'Title', 'Channel', 'Date', 'Weekday', 'Start', 'End'] + df_final.columns[12:17].tolist() + ['League']]).copy()
+        
+        # 转换时间列
+        time_columns = ['Start', 'End', 'Dur']
+        for col in time_columns:
+            df_res[col] = df_res[col].apply(convert_to_excel_time)
+        
+        # 处理德甲数据
+        tar_info_ll = tar_info['Var_Dig'][np.where(tar_info['Other'] == "EPL-Highlights_Magzines")[0][0]]
+        tar_info_ll = pd.DataFrame(tar_info_ll)
+        digits_ll = list(tar_info_ll['Digit'])
+        
+        # df_res_digit = pd.DataFrame()
+        
+        for ll in ['GER', 'ESP', 'EPL']:
+            df_ll = df_res[df_res['League'].isin([ll, 'Total Soccer'])].copy().reset_index(drop=True)
+            for i, digit in enumerate(digits_ll):
+                df_ll.iloc[:, 9+i] = df_ll.iloc[:, 9+i].apply(lambda x: round(float(x), digit))
+            
+            self.file_manager.save_result(df_ll, f"Total_Soccer_{ll}",  "result.xlsx")
+                
+            # if not os.path.exists('./Result/Five_League/result.xlsx'):
+            #     with pd.ExcelWriter('./Result/Five_League/result.xlsx', mode='w', engine='openpyxl') as writer:
+            #         df_ll.to_excel(writer, sheet_name=f"Total_Soccer_{ll}", index=False)
+            # else:
+            #     with pd.ExcelWriter('./Result/Five_League/result.xlsx', mode='a', engine='openpyxl', if_sheet_exists='replace') as writer:
+            #         df_ll.to_excel(writer, sheet_name=f"Total_Soccer_{ll}", index=False)
+                   
+            # df_res_digit = pd.concat([df_res_digit, df_ll])
+            
+        # df_res_digit = df_res_digit.reset_index(drop=True).drop(columns=['League'])
+        # df_res_digit.to_excel('./Result/Five_League/result_total_soccer.xlsx', index=False)
+        
+        print(emoji.emojize(":clinking_beer_mugs: Done generating result for programs on Total Soccer! :bottle_with_popping_cork:"))
 

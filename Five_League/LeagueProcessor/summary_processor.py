@@ -269,7 +269,6 @@ class SummaryProcessor:
         
         # 法甲 UniRch 数据生成
         print("Generating Infosys Program Sheet txt file for French UniRch......")
-        print(df_fra['Start'][0])
         df_fra_unirch = df_fra.assign(
                     Start=df_fra['Start'].apply(lambda x: convert_time( get_seconds(x.strftime("%H:%M:%S"), False) )),
                     End=df_fra['End'].apply(lambda x: convert_time( get_seconds(x.strftime("%H:%M:%S"), False) ))

@@ -64,7 +64,6 @@ def convert_tz(date_str, time_str, hms=True):
     return input_datetime
 
 
-
 def get_seconds(time_str, durr = True):
     # 将 hh:mm:ss 转换为秒数
     h, m, s = map(int, time_str.split(':'))

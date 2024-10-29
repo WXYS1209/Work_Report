@@ -73,6 +73,7 @@ df['Date'] = df['Date'].replace('', None)
 df['Date'] = df['Date'].ffill()
 df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y', errors='coerce')
 
+
 today = pd.Timestamp(datetime.now().strftime('%Y-%m-%d'))
 # df_filtered = df[df['Date'] <= today]
 

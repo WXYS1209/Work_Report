@@ -11,6 +11,7 @@ missing_date_path = os.path.join(script_dir, 'missing_date.xlsx')
 cdp_missing_ps_path = os.path.join(script_dir, 'cdp_missing_ps.xlsx')
 
 def clean_and_merge_parts(title):
+    title = title.replace("?)", ")")
     # 拆分并去除空字符串
     parts = [part for part in title.split("?") if part]
     merged_parts = []
@@ -48,6 +49,10 @@ def extract_brackets(row):
             part_2 = row['Part_2']
             part_1 = row['Part_1']
             
+    if part_2 and re.search(r"\(.*?\)", part_2):
+        if re.findall(r"\((.*?)\)", part_2)[0] != "直播":
+              row['Part_2'] = re.findall(r"\((.*?)\)", part_2)[0]
+              part_2 = row['Part_2']
     if part_2 and '—' in part_2:
         row['Part_2'] = part_2.replace("—", "VS")
     if part_2 and '-' in part_2:
@@ -72,6 +77,18 @@ def map_uniform(row, comp_df, season_df):
     
     return pd.Series([comp_match, season_match])
 
+def format_datetime_to_infosys(datetime_obj):
+    date_part = datetime_obj.date()
+    time_part = datetime_obj.time()
+    hh = time_part.hour
+    mm = time_part.minute
+    ss = time_part.second
+
+    if (hh < 2) or (hh==2 and mm==0 and ss==0): 
+        hh += 24
+        date_part = date_part - timedelta(days=1)
+
+    return pd.Series([date_part.strftime("%Y-%m-%d"), f"{hh:02d}:{mm:02d}:{ss:02d}"])
 
 
 team_mapping = pd.read_excel("D:/wangxiaoyang/Regular_Work/support_files/team_mapping_football.xlsx", sheet_name="New")
@@ -88,6 +105,7 @@ if __name__ == "__main__":
         schedule = pd.concat([schedule1, schedule2])
     else:
         schedule = schedule1
+        
     schedule = schedule.reset_index(drop=True)
     schedule[['Part_1', 'Part_2']] = schedule['Title'].apply(clean_and_merge_parts).apply(pd.Series)
     schedule = schedule.reset_index(drop=True)
@@ -107,18 +125,17 @@ if __name__ == "__main__":
     )
     schedule_game['Time_Stamp'] = pd.to_datetime(schedule_game['Date'] + ' ' + schedule_game['Time'])
     
+    schedule_game[['Date', 'Time']] = schedule_game['Time_Stamp'].apply(format_datetime_to_infosys)
+
     schedule_game['Start'] = schedule_game['Time']
-    
-    schedule_game['End'] = schedule_game['Time'].apply(lambda x:
-        (datetime.strptime(x, '%H:%M:%S') + timedelta(minutes=80)).strftime('%H:%M:%S')
-        )
+    schedule_game['End'] = (schedule_game['Time_Stamp'] + timedelta(minutes=80)).apply(lambda x: format_datetime_to_infosys(x)[1])
     schedule_game['Dur'] = '1:20:00'
     
     sch_final = schedule_game[[
         'Date', 'Start', 'End', 'Dur', 'Competition', 'Season', 'Part_1', 'Part_2', 'Channel'
     ]]
     try:
-        sch_final.to_excel("D:/wangxiaoyang/Regular_Work/Produce_Report/Football_Program/CDP/cdp_ps_clean.xlsx", index=False)
+        sch_final.to_excel("D:/wangxiaoyang/Regular_Work/Produce_Report/CDP/cdp_ps_clean.xlsx", index=False)
         print("Program sheet in good format.")
     except Exception as e:
         print(f"Error writing the file: {e}")

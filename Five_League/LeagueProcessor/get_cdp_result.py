@@ -42,7 +42,7 @@ for kk in range(1, 5):
     # Generate tv_cols using numpy
     tv_cols = np.arange(tv_col_start-1, tv_col_start + tv_var_num * target_num-1)
     
-    cdp_ps = pd.read_excel("D:/wangxiaoyang/Regular_Work/Produce_Report/Football_Program/CDP/cdp_ps_clean.xlsx")
+    cdp_ps = pd.read_excel("D:/wangxiaoyang/Regular_Work/Produce_Report/CDP/cdp_ps_clean.xlsx")
     
     # 筛选 cdp_league 数据
     cdp_league = cdp_ps[

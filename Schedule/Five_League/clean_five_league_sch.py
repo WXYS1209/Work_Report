@@ -9,6 +9,8 @@ sch_five_league_path = os.path.join(script_dir, 'sch_five_league.xlsx')
 sch_five_league_clean_path = os.path.join(script_dir, 'sch_five_league_clean.xlsx')
 
 def format_time_to_26(time_str):
+    if pd.isna(time_str):
+        return pd.NA
     tmp = time_str.split(":")
     hh, mm = map(int, tmp[0:2])
 
@@ -27,6 +29,7 @@ team_mapping = pd.read_excel("D:/wangxiaoyang/Regular_Work/support_files/team_ma
 schedule = pd.read_excel(sch_five_league_path)
 code_mapping = pd.read_excel("D:/wangxiaoyang/Regular_Work/support_files/team_mapping_football.xlsx", sheet_name="Mapping")
 
+schedule = schedule[schedule['Time'].notna()]
 schedule_with_codes = schedule.merge(
     team_mapping[['Org', 'Team_Code']], how='left', left_on='Home Team', right_on='Org'
 ).rename(columns={'Team_Code': 'Home_Team_Code'}).merge(

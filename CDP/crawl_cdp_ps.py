@@ -1,7 +1,7 @@
 import pandas as pd
 import sys
 import os
-sys.path.append('D:/wangxiaoyang/Regular_Work/Produce_Report/Auto_Flow/assets')  # Replace with the actual path
+sys.path.append('D:/wangxiaoyang/Regular_Work/Produce_Report/')  # Replace with the actual path
 from other_func import *  # Replace with the actual file and function/class names
 
 # 获取当前脚本文件的目录

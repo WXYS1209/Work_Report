@@ -55,7 +55,9 @@ shared_variables = {
 processor = LeagueProcessor(shared_variables)
 processor.process_normal_result()
 processor.process_cdp_result()
+processor.process_total_soccer_result()
 processor.process_final_result()
+
 
 ## Get Overall period
 overall_date_str = input("\U0001F643 Please give start date as: [YYYY-MM-DD]: ").split()
